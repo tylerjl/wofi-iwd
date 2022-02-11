@@ -12,6 +12,7 @@ with pkgs ; stdenv.mkDerivation rec {
     description = "iwd interface using rofi/wofi";
     homepage = https://github.com/tylerjl/wofi-iwd;
     platforms = [ "x86_64-linux" ];
+    mainProgram = "rofi_iwd.sh";
   };
   propagatedBuildInputs = [ (callPackage ./iwd-scan.nix {}) ];
 }
