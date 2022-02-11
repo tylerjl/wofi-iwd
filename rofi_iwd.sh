@@ -91,7 +91,7 @@ get_ssid() {
 
     if [[ "$select" =~ '^>' ]]
     then
-        notify-send.sh "iNet wireless daemon" "Already connected to this network."
+        notify-send "iNet wireless daemon" "Already connected to this network."
         exit 0
     elif [[ "$select" =~ 'open *$' ]]
     then
