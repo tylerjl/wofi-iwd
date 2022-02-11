@@ -28,7 +28,7 @@ function dmenu() {
 }
 
 function ssid-scan(){
-    eval "$pathname/iwd-scan.py $@"
+    eval "iwd-scan $@"
 }
 
 case $script in

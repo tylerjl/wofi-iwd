@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-#
 # Usage:
 #   iwd-scan.py [ssid]
 # DESCRIPTION:
-#   Outputs scanned SSIDs from of all wifi devices via dbus. Outputs in the following format:
+#   Outputs scanned SSIDs from of all wifi devices via dbus.
+#   Outputs in the following format:
 #     SSID/n
 #     Signal Strength dBm\n
 #     psk|wpa|open \n
@@ -15,40 +14,47 @@ import sys
 import dbus
 import collections
 
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
+
 bus = dbus.SystemBus()
 
-manager = dbus.Interface(bus.get_object("net.connman.iwd", "/"),
-                                        "org.freedesktop.DBus.ObjectManager")
+manager = dbus.Interface(
+    bus.get_object("net.connman.iwd", "/"),
+    "org.freedesktop.DBus.ObjectManager"
+)
 objects = manager.GetManagedObjects()
+two_args = len(sys.argv) == 2
 
-Obj = collections.namedtuple('Obj', ['interfaces', 'children'])
+Obj = collections.namedtuple('Obj', ['interfaces', 'ch'])
 tree = Obj({}, {})
 for path in objects:
     node = tree
     elems = path.split('/')
-    for subpath in [ '/'.join(elems[:l + 1]) for l in range(1, len(elems)) ]:
-        if subpath not in node.children:
-            node.children[subpath] = Obj({}, {})
-        node = node.children[subpath]
+    for subpath in ['/'.join(elems[:x + 1]) for x in range(1, len(elems))]:
+        if subpath not in node.ch:
+            node.ch[subpath] = Obj({}, {})
+        node = node.ch[subpath]
     node.interfaces.update(objects[path])
 
-root = tree.children['/net'].children['/net/connman'].children['/net/connman/iwd']
-for path, phy in root.children.items():
+root = tree.ch['/net'].ch['/net/connman'].ch['/net/connman/iwd']
+for path, phy in root.ch.items():
     if 'net.connman.iwd.Adapter' not in phy.interfaces:
         continue
 
     properties = phy.interfaces['net.connman.iwd.Adapter']
 
-    for path2, device in phy.children.items():
+    for path2, device in phy.ch.items():
         if 'net.connman.iwd.Device' not in device.interfaces:
             continue
 
-        if len(sys.argv) !=2 or (len(sys.argv) == 2 and sys.argv[1] != 'ssid'):
-            edevice = dbus.Interface(bus.get_object("net.connman.iwd", path2),
-                                        "net.connman.iwd.Station")
+        if not two_args or (two_args and sys.argv[1] != 'ssid'):
+            edevice = dbus.Interface(
+                bus.get_object("net.connman.iwd", path2),
+                "net.connman.iwd.Station"
+            )
             eprint("Scanning: [ %s ]" % path2)
             try:
                 edevice.Scan()
@@ -73,9 +79,9 @@ for path, phy in root.children.items():
             for path3, rssi in station.GetOrderedNetworks():
 
                 properties2 = objects[path3]['net.connman.iwd.Network']
-
-                if len(sys.argv) !=2 or (len(sys.argv) == 2 and sys.argv[1] != 'ssid'):
-                    print("%s%ls" % ( ">" if properties2['Connected'] == 1 else " ",properties2['Name'], ))
+                prompt = ">" if properties2['Connected'] == 1 else " "
+                if not two_args or (two_args and sys.argv[1] != 'ssid'):
+                    print("%s%ls" % (prompt, properties2['Name'], ))
                     print("%i dBm" % (rssi / 100,))
                     print("%s" % (properties2['Type'],))
                 else:
